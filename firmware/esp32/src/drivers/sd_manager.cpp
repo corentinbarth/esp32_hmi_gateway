@@ -1,9 +1,3 @@
-#ifndef SD_MANAGER_H
-#define SD_MANAGER_H
-
-#include <SPI.h>
-#include <SD.h>
-
 /*
 MISO GPIO25
 SCK GPIO33
@@ -12,25 +6,19 @@ CS GPIO32
 VCC 3.3V 
 GND GND*/
 
-// Codes de retour
-#define SD_OK   0   // Tout s'est bien passé
-#define SD_ERR  -1   // problème 
-
-
-
-// ── Pins du module SD ─────────────────────────────────────────────────
+// ── Pins SD module ─────────────────────────────────────────────────
 #define SD_MISO 25
 #define SD_SCK  33
 #define SD_MOSI 27
 #define SD_CS   32
 
-// Initialise la carte SD
-// Retourne SD_OK si OK, SD_ERR_OPEN si erreur à l'ouverture
+/*SD card initialization*/
+// return SD_OK if OK and SD_ERR_OPEN if error upon opening
 int init_sd(){
 
     SPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
 
-    //verif begin
+    //verification begin
     if (!SD.begin(SD_CS)) {
         Serial.println("Erreur : carte SD non détectée");
         return SD_ERR;
@@ -41,15 +29,15 @@ int init_sd(){
 }
 
 
-// Parcourt la racine de la carte SD
+// Browse the root of the SD card
 // Format : "fichier1.txt,fichier2.jpg,fichier3.mp3"
-//retourne le nombre de fichier lu, -1 si erreur
+//return the number of read file and -1 if error
 
 int get_File_List(char file_names[][64], int maxfiles) {
 
     File root = SD.open("/");
 
-    //verif ouverture
+    //opening verification
     if (!root) {
         Serial.println("Erreur : impossible d'ouvrir la racine");
     return SD_ERR;
@@ -61,19 +49,19 @@ int get_File_List(char file_names[][64], int maxfiles) {
 
     Serial.println("Fichiers : ");
 
-    int i=0; //initialisation compteur
+    int i=0; //counter initialization
 
     while (file) {
-        if (!file.isDirectory()){ //on ignore les sous dossier
+        if (!file.isDirectory()){ //ignoring subfolders
 
-            // On vérifie qu'on ne dépasse pas la taille du buffer
+            //Check that we are below the buffer length
             if (i >= maxfiles) return SD_ERR;
 
             strcpy(file_names[i], file.name());
             i++;
-            Serial.println(file.name()); //affichage dans le moniteur série
+            Serial.println(file.name());
         }
-        //prochain fichier
+        //next file
         file = root.openNextFile();
  
     }
@@ -82,7 +70,3 @@ int get_File_List(char file_names[][64], int maxfiles) {
 
   return i;
 }
-
-
-
-#endif

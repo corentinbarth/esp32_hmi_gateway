@@ -1,7 +1,10 @@
 Litlle/big endian
 watchdog (reset watchdog)
 
-Vocabulary :
+abbreviation :
 MSB = most significant bit
 LSB = least significant bit
 ACK = Acknoledgments
+Init = Initialisation
+com = comunication
+max = maximum

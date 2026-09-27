@@ -92,7 +92,11 @@ uint8_t* read_fichier(char* file_name, uint16_t *num_states, uint8_t *num_leds){
     uint32_t data_size = (uint32_t)(*num_states)*(*num_leds)*3;
     uint8_t* data = (uint8_t*) calloc(data_size, sizeof(uint8_t));
 
-    
+    if (data==NULL){//did calloc work ?
+        f.close();
+        return NULL; 
+    }
+
     uint32_t bytes_lus = f.read(data, data_size);
 
     if (bytes_lus != data_size){
@@ -137,7 +141,7 @@ void uart_write(uint8_t *data, uint16_t len)
     uart_write_bytes(UART_NUM_1, (const char*)data, len);
     uart_wait_tx_done(UART_NUM_1, 100); // waiting end of emission
 
-    gpio_set_level(PIN_DE_RE, 0); // back to transmission mode for reception of acknoledgment
+    gpio_set_level(PIN_DE_RE, 0); // back to reception mode to receive acknoledgments
 }
 
 
@@ -168,8 +172,8 @@ void send_start(uint8_t seq, uint8_t num_leds, uint16_t num_states){
     trame[0] = SOF;
     trame[1] = CMD_START;
     trame[2] = seq;
-    trame[3] = 0x00;  // LEN LSB
-    trame[4] = 0x03;  // LEN MSB (3 Bytes)
+    trame[3] = 0x00;  // LEN MSB
+    trame[4] = 0x03;  // LEN LSB (3 Bytes)
     trame[5] = payload[0];
     trame[6] = payload[1];
     trame[7] = payload[2];
@@ -181,7 +185,7 @@ void send_start(uint8_t seq, uint8_t num_leds, uint16_t num_states){
     uart_write(trame, 10);
 }
 
-/*DATA frame*/
+/*Data frame*/
 void send_DATA(uint8_t seq, uint8_t *data, uint8_t num_leds, uint16_t num_states )
 {
     //length payload
@@ -213,7 +217,7 @@ void send_DATA(uint8_t seq, uint8_t *data, uint8_t num_leds, uint16_t num_states
 }
 
 
-/*trame de fin*/
+/*End frame*/
 void send_end(uint8_t seq)
 {
 
