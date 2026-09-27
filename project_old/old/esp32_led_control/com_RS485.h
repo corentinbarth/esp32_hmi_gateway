@@ -10,11 +10,13 @@
 #include "freertos/FreeRTOS.h" // pdMS_TO_TICKS
 #include "freertos/task.h"
 
+
 #define SOF         0xAA //start of frame
-#define CMD_START   0x01 //début d'image
+#define CMD_START   0x01 //start
 #define CMD_DATA    0x02 //DATA
-#define CMD_END     0x03 //fin d'image
-#define CMD_ACK     0x04 //acquitement
+#define CMD_END     0x03 //end
+#define CMD_ACK     0x04 //acknoledgment
+
 
 #define PIN_TX      GPIO_NUM_17
 #define PIN_RX      GPIO_NUM_16
