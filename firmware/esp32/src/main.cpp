@@ -10,6 +10,7 @@
 //Constant 
 #define NUMBER_MAX_FILES 20 //max 20 files
 #define LENGTH_MAX_STRING 64 //64 characters for each name
+#define NUM_STATES_DEFAULT 255 //current number of states
 
 //LED Pin
 #define LED_PIN 2
@@ -19,9 +20,8 @@
 #define RELAY2 19
 
 
-
 //button pin
-#define BUTTON1_PIN 14 // jostick button
+#define BUTTON1_PIN 14 // joystick button
 #define BUTTON2_PIN 12 //for relay 1
 #define BUTTON3_PIN 13 //for Relay 2
 
@@ -32,7 +32,7 @@ char fileList[NUMBER_MAX_FILES][LENGTH_MAX_STRING];
 
 int selectedIndex = 0; //index of the selected file, 0 initially
 int file_count; //number of file on SD card
-bool led_state = false;
+bool relay1_state = false;
 bool relay2_state = false;
 //initial buttons states
 bool button1_previous = HIGH;
@@ -47,6 +47,9 @@ const char* AP_PASSWORD = "evge3004";
 
 //web server on port 80
 AsyncWebServer server(80);
+
+//initialisation RS485 Settings : allocation statique
+Rs485Settings settings = { NUM_LED, NUM_STATES_DEFAULT }; 
 
 
 void setup() {
@@ -96,7 +99,7 @@ void setup() {
     }
   }
 
-  else screen_display_char("Problem with SD card",1); //erros SD
+  else screen_display_char("Problem with SD card",1); //error SD
 
   /*Init com with STM32*/
   init_com();
@@ -126,19 +129,19 @@ void setup() {
 
 void loop() {
 
-  int direction = retour_joystick(); 
-  int lastIndex = selectedIndex; // On mémorise l'ancienne position
+  int direction = joystick_feedback(); 
+  int lastIndex = selectedIndex; // old position
 
   /*joystick manager*/
   //to go down
-  if (direction == DOWN) {
+  if (file_count > 0 && direction == DOWN) {
       selectedIndex = (selectedIndex + 1) % file_count;
       screen_display_menu(fileList, file_count, selectedIndex);
   }
 
   //to go up 
-  if (direction == UP) {
-      selectedIndex = (selectedIndex - 1 + file_count) % file_count; //on ajoute file_count pour ne pas avoir un modulo négatif
+  if (file_count > 0 && direction == UP) {
+      selectedIndex = (selectedIndex - 1 + file_count) % file_count; //we add file_count to have a positive modulo
       screen_display_menu(fileList, file_count, selectedIndex);
   }
 
@@ -146,7 +149,7 @@ void loop() {
   // the screen is only refresh if the index has changed
   if (selectedIndex != lastIndex) {
     screen_display_menu(fileList, file_count, selectedIndex);
-    delay(200); // "Debounce" temporel : laisse le temps de relâcher le joystick
+    delay(200); // temporal debounce
   }
   
   button1_current = digitalRead(BUTTON1_PIN);
@@ -159,7 +162,7 @@ void loop() {
     //display the selected file
     screen_display_char(fileList[selectedIndex], 1);
     //
-    send_image(fileList[selectedIndex]);
+    send_image(fileList[selectedIndex], &settings);
 
     delay(6000); // display time
 
@@ -171,9 +174,8 @@ void loop() {
   // button 2 to turn on relais 1
   if (button2_current == LOW && button2_previous == HIGH) { 
     
-    led_state = !led_state; 
-    digitalWrite(LED_PIN, led_state ? HIGH : LOW);
-    digitalWrite(RELAY1, led_state ? HIGH : LOW);
+    relay1_state = !relay1_state; 
+    digitalWrite(RELAY1, relay1_state ? HIGH : LOW);
 
     delay(200); // avoid mechanical bounce
 
@@ -182,9 +184,8 @@ void loop() {
   // button 3 to turn on relais 2
   if (button3_current == LOW && button3_previous == HIGH) { 
     
-    relay2_state = !relay2_state; // On inverse l'état
-    digitalWrite(LED_PIN, relay2_state ? HIGH : LOW);
-    digitalWrite(RELAY1, relay2_state ? HIGH : LOW);
+    relay2_state = !relay2_state; // reverse state
+    digitalWrite(RELAY2, relay2_state ? HIGH : LOW);
 
     delay(200); // avoid mechanical bounce
 

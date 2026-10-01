@@ -2,7 +2,7 @@
 #define VRY 34 
 
 /*return the state of the joystick*/
-int retour_joystick() {
+int joystick_feedback() {
   int y = analogRead(VRY);
 
   if (y < 100) {

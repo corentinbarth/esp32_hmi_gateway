@@ -19,11 +19,6 @@
 // .bin -> serialized polar image from processing
 
 
-
-uint8_t num_leds; // 48 LED
-uint16_t num_states; // 255 states
-
-
 /*communication initialization*/
 void init_com(){
 
@@ -57,13 +52,13 @@ void init_com(){
 
 
 
-/*Reading the file and extracting num_states and num_leds, then returning the data serially (sent by Python)*/
-uint8_t* read_fichier(char* file_name, uint16_t *num_states, uint8_t *num_leds){
+/*Reading the file and extracting num_states and num_led, then returning the data serially (sent by Python)*/
+uint8_t* read_file(char* file_name, Rs485Settings* settings){
 
 
     // Path construction
     char full_name[128];
-    snprintf(full_name, sizeof(full_name),"/%s", file_name);
+    snprintf(full_name, sizeof(full_name),"/%s", file_name); //write file_name in full_name
 
 
     File f = SD.open(full_name); //opening in binary read mode
@@ -86,10 +81,23 @@ uint8_t* read_fichier(char* file_name, uint16_t *num_states, uint8_t *num_leds){
         return NULL;
     }
 
-    *num_states = (header[0]<<8) | header[1];
-    *num_leds = header[2];
+    settings->num_states = (header[0]<<8) | header[1];
+    settings->num_led = header[2];
 
-    uint32_t data_size = (uint32_t)(*num_states)*(*num_leds)*3;
+    //header verifications
+    if(settings->num_led != NUM_LED){
+        Serial.println("led number in the header does not match");
+        f.close();
+        return NULL;
+    }
+
+    if(settings->num_states == 0 || settings->num_states > NUM_STATES_MAX){
+        Serial.println("wrong value for num_states in the header");
+        f.close();
+        return NULL;
+    }
+
+    uint32_t data_size = (uint32_t)(settings->num_states)*(settings->num_led)*3; //RGB (*3) for each led
     uint8_t* data = (uint8_t*) calloc(data_size, sizeof(uint8_t));
 
     if (data==NULL){//did calloc work ?
@@ -158,15 +166,15 @@ NUM_STATES  360 //the selected resolution */
 
 
 /*Start frame*/
-void send_start(uint8_t seq, uint8_t num_leds, uint16_t num_states){
+void send_start(uint8_t seq, Rs485Settings* settings){
 
     //DATA = state number + LED number
     uint8_t payload[3]; //Array of 3 integers
     //2 bytes because > 255
     //MSB/LSB = no problem with little/big endian 
-    payload[0] = (num_states >> 8) & 0xFF;  // MSB
-    payload[1] = num_states & 0xFF; // LSB
-    payload[2] = num_leds;
+    payload[0] = ((settings->num_states) >> 8) & 0xFF;  // MSB
+    payload[1] = (settings->num_states) & 0xFF; // LSB
+    payload[2] = settings->num_led;
 
     uint8_t trame[10]; 
     trame[0] = SOF;
@@ -186,13 +194,18 @@ void send_start(uint8_t seq, uint8_t num_leds, uint16_t num_states){
 }
 
 /*Data frame*/
-void send_DATA(uint8_t seq, uint8_t *data, uint8_t num_leds, uint16_t num_states )
-{
+int send_DATA(uint8_t seq, uint8_t *data, Rs485Settings* settings){
+
     //length payload
-    //DATA = 8 data lines, each line with num_leds pixels of 3 bytes each
-    uint16_t len = 8*num_leds*3;
+    //DATA = 8 data lines, each line with num_led pixels of 3 bytes each
+    uint16_t len = 8*(settings->num_led)*3;
 
     uint8_t *trame = (uint8_t*) calloc(7+len,sizeof(uint8_t)); //Array 7+len integers
+
+    if (trame == NULL) {
+    Serial.println("frame allocation failure");
+    return PB;
+    }
 
     trame[0] = SOF;
     trame[1] = CMD_DATA;
@@ -214,6 +227,7 @@ void send_DATA(uint8_t seq, uint8_t *data, uint8_t num_leds, uint16_t num_states
 
     uart_write(trame, 7+len);
     free(trame);
+    return OK;
 }
 
 
@@ -269,37 +283,37 @@ int receive_ack(uint8_t seq){
 }
 
 /*The master node, which transmits the full image*/
-int send_image(char* file_name){
+int send_image(char* file_name, Rs485Settings* settings){
     
     uint8_t seq=0;
     
     // memory diagnostic 
     Serial.printf("Heap avant alloc : %d\n", ESP.getFreeHeap());
 
-    //reading the file, extracting num_states and num_leds and returns datas
-    uint8_t* data = read_fichier(file_name, &num_states, &num_leds);
+    //reading the file, extracting num_states and num_led and returns datas
+    uint8_t* data = read_file(file_name, settings);
 
     // diagnostic after reading
     Serial.printf("Heap après alloc : %d\n", ESP.getFreeHeap());
-    Serial.printf("num_states=%d, num_leds=%d\n", num_states, num_leds);
+    Serial.printf("num_states=%d, num_led=%d\n", (settings->num_states), settings->num_led);
 
     if (data==NULL){
         Serial.println("memory allocation failure !");
         return PB;
     }
 
-    uint32_t data_size = num_states * num_leds * 3;
+    uint32_t data_size = (settings->num_states) * (settings->num_led) * 3;
     uint8_t *data_end = data + data_size; //pointeur de fin
 
 
     //sending start frame + acknoledgments
-    int tentatives = 0;
     int ack = PB;
+    int tentatives = 0;
     while(tentatives < 3){
-        send_start(seq, num_leds, num_states);//sending start frame
+        send_start(seq, settings);
 
         ack = receive_ack(seq);
-        if(ack == OK){tentatives = 5;} //break might be usefull
+        if(ack == OK){break;}
 
         tentatives++;
     }
@@ -321,7 +335,9 @@ int send_image(char* file_name){
         tentatives = 0;
         while(tentatives < 3){
 
-            send_DATA(seq, curr, num_leds, num_states); //send data frame
+            if(send_DATA(seq, curr, settings)!=OK){
+                return PB;
+            };//send data frame
 
             ack = receive_ack(seq);
             if(ack == OK) break; //break might be usefull
@@ -330,11 +346,11 @@ int send_image(char* file_name){
         }
 
         if(ack == PB){
-            free(data);
+            free(data); //calloc made in read_file
             return PB;
         }
 
-        curr += (8*num_leds*3);
+        curr += (8*(settings->num_led)*3);
         seq+=1;
 
         }
@@ -346,7 +362,7 @@ int send_image(char* file_name){
         send_end(seq);//sending end frame
 
         ack = receive_ack(seq);
-        if(ack == OK){tentatives = 5;}
+        if(ack == OK){break;}
 
         tentatives++;
     }
