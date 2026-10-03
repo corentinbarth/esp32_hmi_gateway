@@ -7,7 +7,7 @@ As part of the **Ol’INP 2027** competition gathering all engineering schools f
 
 **My Role:** I was in charge of building the IoT architecture and the centralized HMI to activate all actuators on the float and control the POV display.
 
-## 🎯 Embedded System Architecture
+## Embedded System Architecture
 The main goal of this project is to prototype an IoT architecture and a centralized HMI capable of interacting in real-time with the float's operators and users. 
 
 To meet our flexibility and robustness requirements, the system is designed around four core functions:
@@ -15,6 +15,8 @@ To meet our flexibility and robustness requirements, the system is designed arou
 *   **Local Mass Storage:** Buffering and ensuring the persistence of visual configuration files on an SD card prior to display processing.
 *   **Embedded Data Processing:** Dynamically formatting and adapting image matrices to the dimensional and timing constraints of the POV system.
 *   **Wireless Remote Control:** A remote user interface (via smartphone) enabling wireless OTA (Over-The-Air) uploading, updating, and selection of images. *(Currently under development).*
+
+<img width="1147" height="583" alt="global_schematic" src="https://github.com/user-attachments/assets/f0fc0f4e-5b52-482c-a442-50610e9565e5" />
 
 ## Hardware Selection & Local Interface
 
@@ -31,7 +33,7 @@ I chose the **ESP32** over alternatives like the Raspberry Pi for several critic
 ### Display: OLED over LCD
 For outdoor operation, OLED technology offers superior brightness and readability without relying on a power-hungry backlight. It is easily driven via the ESP32’s I2C bus.
 
-## 📡 Communication Protocol (ESP32 ➔ STM32)
+## Communication Protocol (ESP32 ➔ STM32)
 
 To ensure the STM32 receives the correct data without dropped packets (which would cause severe visual desynchronization), we implemented a highly robust transfer protocol.
 
@@ -42,8 +44,8 @@ Before transmission, images are processed via a custom Python script:
 *   **Polar Coordinate Mapping:** Converting standard coordinates to angular positions (degrees).
 *   **POV Resolution Scaling:** Adapting the matrix to the physical LED count (width) and angular resolution per revolution (height).
 *   **Serialization:** Flattening the data into a `.bin` file for the ESP32.
-*   
-<img width="698" height="181" alt="Image1" src="https://github.com/user-attachments/assets/156f22a6-e5df-4951-9056-477bc44b679c" />
+
+<img width="1122" height="427" alt="serialization_process" src="https://github.com/user-attachments/assets/79ea3b0b-e721-4fda-8a19-7882b3e3ddae" />
 
 ### 2. RS-485 Data Transfer
 We utilize an **RS-485 transceiver** for reliable, long-distance differential signaling, ensuring high noise immunity in the float's electrically noisy environment.
@@ -56,4 +58,11 @@ We utilize an **RS-485 transceiver** for reliable, long-distance differential si
 *   `Payload`: Serialized image data
 *   `CRC`: Cyclic Redundancy Check for data integrity
 
+<img width="811" height="147" alt="frame" src="https://github.com/user-attachments/assets/8d49126f-e95a-414d-ba87-f318a1b82177" />
+
+<img width="1060" height="177" alt="RGB_frame" src="https://github.com/user-attachments/assets/d90d8e00-4a4f-4587-8d3a-c4fbae8fc417" />
+
 To guarantee transmission robustness, the STM32 recalculates the CRC on reception. We use a **closed-loop exchange with Acknowledgments (ACKs)** for every frame sent.
+
+<img width="417" height="610" alt="frame_exchange" src="https://github.com/user-attachments/assets/3efcb210-9dae-4609-aef6-282e37447185" />
+
