@@ -16,7 +16,7 @@ To meet our flexibility and robustness requirements, the system is designed arou
 *   **Embedded Data Processing:** Dynamically formatting and adapting image matrices to the dimensional and timing constraints of the POV system.
 *   **Wireless Remote Control:** A remote user interface (via smartphone) enabling wireless OTA (Over-The-Air) uploading, updating, and selection of images. *(Currently under development).*
 
-<img width="1147" height="583" alt="global_schematic" src="https://github.com/user-attachments/assets/f0fc0f4e-5b52-482c-a442-50610e9565e5" />
+<img width="811" height="412" alt="global_schematic" src="https://github.com/user-attachments/assets/4e6a242c-0b79-40b4-aedb-4b683bf74bf2" />
 
 ## Hardware Selection & Local Interface
 
@@ -60,9 +60,14 @@ We utilize an **RS-485 transceiver** for reliable, long-distance differential si
 
 <img width="811" height="147" alt="frame" src="https://github.com/user-attachments/assets/8d49126f-e95a-414d-ba87-f318a1b82177" />
 
-<img width="1060" height="177" alt="RGB_frame" src="https://github.com/user-attachments/assets/d90d8e00-4a4f-4587-8d3a-c4fbae8fc417" />
-
 To guarantee transmission robustness, the STM32 recalculates the CRC on reception. We use a **closed-loop exchange with Acknowledgments (ACKs)** for every frame sent.
 
-<img width="417" height="610" alt="frame_exchange" src="https://github.com/user-attachments/assets/3efcb210-9dae-4609-aef6-282e37447185" />
+<img width="253" height="379" alt="frame_exchange" src="https://github.com/user-attachments/assets/457fba60-e1a6-4ecd-9eea-3ecc9ca2e60b" />
+
+### 3. Pipeline Validation: Python POV Simulator
+To validate the entire data pipeline prior to physical hardware deployment, the final transmitted frames are reconstructed and visualized using a custom Python-based POV simulator. This digital twin approach allows us to verify data integrity, test rotational speeds, and ensure pixel-perfect synchronization without risking hardware damage.
+
+<img width="528" height="517" alt="POV_simulation" src="https://github.com/user-attachments/assets/4b314e88-52da-467b-adc4-21d4d6a5a523" />
+
+
 
