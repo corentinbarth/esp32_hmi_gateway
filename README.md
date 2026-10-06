@@ -69,5 +69,7 @@ To validate the entire data pipeline prior to physical hardware deployment, the 
 
 <img width="528" height="517" alt="POV_simulation" src="https://github.com/user-attachments/assets/4b314e88-52da-467b-adc4-21d4d6a5a523" />
 
+### 4. CAD & casing
+During the project, our goal was to build a minimum viable product (MVP). To achieve this, we prototyped a firts casing for all control components (joystick, display, push-buttons, RS-485 module, and the ESP32). The next step will be to design a more advanced casing and a custom PCB to ensure cleaner and more reliable connections between components.
 
-
+<img width="678" height="582" alt="CAD1" src="https://github.com/user-attachments/assets/b4443b3f-a1c5-41cf-aa5d-8b4a23000aa9" />
